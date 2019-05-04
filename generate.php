@@ -33,73 +33,69 @@ $font = 0;
 $fontW = 0;
 $fontH = 0;
 
-class image {
-	var $screenW;
-	var $screenH;
-	var $borderX;
-	var $borderY;
-	var $spaceY;
+class Image {
+	public $image;
+	private $screenW;
+	private $screenH;
+	private $borderX;
+	private $borderY;
+	private $spaceY;
 
-	var $colorForeground = 0;
-	var $colorBackground = 0;
-	var $font = 0;
-	var $fontW = 0;
-	var $fontH = 0;
+	private $colorForeground;
+	private $colorBackground;
+	private $font;
+	private $fontW;
+	private $fontH;
 
-	function _constructor($spec_screenW, $spec_screenH, $spec_borderX, $spec_borderY, $spec_$spaceY) {
-		$screenW = $spec_screenW;
-		$screenH = $spec_screenH;
-		$borderX = $spec_borderX;
-		$borderY = $spec_borderY;
-		$spaceY = $spec_$spaceY;
+	function __construct($spec_screenW, $spec_screenH, $spec_borderX, $spec_borderY, $spec_spaceY) {
+		$this->screenW = $spec_screenW;
+		$this->screenH = $spec_screenH;
+		$this->borderX = $spec_borderX;
+		$this->borderY = $spec_borderY;
+		$this->spaceY = $spec_spaceY;
 	}
 
-}
+	function drawTextString($textX, $textY, $text) {
+		$x = $textX * $this->fontW + $this->borderX;
+		$y = $textY * ($this->spaceY + $this->fontH) + $this->borderY;
+		imagestring($this->image, $this->font, $x, $y, $text, $this->colorForeground);
+	}
 
-function drawTextString($textX, $textY, $text) {
-	global $borderX, $borderY, $colorForeground, $font;
-	global $fontW, $fontH, $spaceY, $image;
+	public function renderImage() {
+		$this->image = imagecreatetruecolor($this->screenW, $this->screenH);
 
-	$x = $textX * $fontW + $borderX;
-	$y = $textY * ($spaceY + $fontH) + $borderY;
-	imagestring($image, $font, $x, $y, $text, $colorForeground);
+		$this->colorForeground = imagecolorallocate($this->image, 96, 255, 0);
+		$this->colorBackground = imagecolorallocate($this->image, 0, 0, 0);
+		imagefilledrectangle($this->image, 0, 0, $this->screenW, $this->screenH, $this->colorBackground);
+
+		// Load custom font from http://www.danceswithferrets.org/lab/gdfs/
+		$this->font = imageloadfont("HomBoldB_16x24_LE.gdf");
+		$this->fontW = imagefontwidth($this->font);
+		$this->fontH = imagefontheight($this->font);
+
+		$this::drawTextString(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
+		self::drawTextString(0, 1, "RAM:  16384 used / 16384 free");
+		self::drawTextString(0, 3, "GPU: 199%   200C   3600rpm");
+		self::drawTextString(0, 4, "VRAM: 16384 used / 16384 free");
+	}
+
+	public function outputImage() {
+		header('Content-type: image/png');
+		imagepng($this->image);
+		imagedestroy($this->image);
+	}
 }
 
 function getMonitoredValues() {
 }
 
-function renderImage() {
-	global $image, $colorForeground, $colorBackground;
-	global $screenW, $screenH;
-	global $font, $fontW, $fontH;
-
-	$image = imagecreatetruecolor($screenW, $screenH);
-
-	$colorForeground = imagecolorallocate($image, 96, 255, 0);
-	$colorBackground = imagecolorallocate($image, 0, 0, 0);
-	imagefilledrectangle($image, 0, 0, $screenW, $screenH, $colorBackground);
-
-	// Load custom font from http://www.danceswithferrets.org/lab/gdfs/
-	$font = imageloadfont("HomBoldB_16x24_LE.gdf");
-	$fontW = imagefontwidth($font);
-	$fontH = imagefontheight($font);
-
-	drawTextString(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
-	drawTextString(0, 1, "RAM:  16384 used / 16384 free");
-	drawTextString(0, 3, "GPU: 199%   200C   3600rpm");
-	drawTextString(0, 4, "VRAM: 16384 used / 16384 free");
-
-}
-
 function _main() {
-	image = new image(480, 320, 0, 8, 8);
+	$Image = new Image(480, 320, 0, 8, 8);
 
 	getMonitoredValues();
-	renderImage();
 
-	header('Content-type: image/png');
-	imagepng($image);
-	imagedestroy($image);
+	$Image->renderImage();
+	$Image->outputImage();
 }
 
 _main();
