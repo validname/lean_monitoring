@@ -1,0 +1,18 @@
+<html>
+<body bgcolor="black">
+<style>
+html, body {
+  overflow: hidden;
+  position:fixed;
+  margin: 0;
+  height: 100%;
+}
+</style>
+<img src="" id="myImage">
+<script>
+setInterval(function() {
+    var myImageElement = document.getElementById('myImage');
+    myImageElement.src = '/tmp/baremetal_usage.png?rand=' + Math.random();
+}, 1000);
+</script>
+</body>
