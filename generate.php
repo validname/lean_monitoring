@@ -47,6 +47,8 @@ class Image {
 	private $fontW;
 	private $fontH;
 
+	private $textArray = array();
+
 	function __construct($spec_screenW, $spec_screenH, $spec_borderX, $spec_borderY, $spec_spaceY) {
 		$this->screenW = $spec_screenW;
 		$this->screenH = $spec_screenH;
@@ -67,6 +69,10 @@ class Image {
 		$this->fontH = imagefontheight($this->font);
 	}
 
+	public function addText($textX, $textY, $text) {
+		$this->textArray[] = array( 'x' => $textX, 'y' => $textY, 'text' => $text );
+	}
+
 	public function renderImage() {
 		$this->image = imagecreatetruecolor($this->screenW, $this->screenH);
 
@@ -74,10 +80,9 @@ class Image {
 		$this->colorBackground = imagecolorallocate($this->image, 0, 0, 0);
 		imagefilledrectangle($this->image, 0, 0, $this->screenW, $this->screenH, $this->colorBackground);
 
-		$this::drawTextString(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
-		self::drawTextString(0, 1, "RAM:  16384 used / 16384 free");
-		self::drawTextString(0, 3, "GPU: 199%   200C   3600rpm");
-		self::drawTextString(0, 4, "VRAM: 16384 used / 16384 free");
+		foreach ($this->textArray as $textElement) {
+			$this::drawTextString($textElement['x'], $textElement['y'], $textElement['text']);
+		}
 	}
 
 	public function outputImage() {
@@ -97,6 +102,10 @@ function _main() {
 	$Image->setFont("HomBoldB_16x24_LE.gdf");
 
 	getMonitoredValues();
+	$Image->addText(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
+	$Image->addText(0, 1, "RAM:  16384 used / 16384 free");
+	$Image->addText(0, 3, "GPU: 199%   200C   3600rpm");
+	$Image->addText(0, 4, "VRAM: 16384 used / 16384 free");
 
 	$Image->renderImage();
 	$Image->outputImage();
