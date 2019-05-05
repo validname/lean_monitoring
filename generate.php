@@ -31,6 +31,8 @@ $config['outputFile'] = '/mnt/tmpfs/system_usage.png';
 
 $config['generateInterval'] = 10;
 
+$cpu_stats = array();
+
 class Image {
 	public $image;
 	private $screenW;
@@ -90,25 +92,114 @@ class Image {
 	}
 
 	public function outputImage() {
-		header('Content-type: image/png');
 		imagepng($this->image, $this->outputImage);
 		imagedestroy($this->image);
 	}
 }
 
+function searchRegexInArray($textArray, $string, $startIndex=0) {
+	$arrayLength = count($textArray);
+
+	$found = false;
+	for ($index = $startIndex; $index < $arrayLength; $index++) {
+		if (preg_match($string, $textArray[$index])) {
+			$found = true;
+			break;
+		}
+	}
+	if ($found == true) {
+		return $index;
+	} else {
+		return -1;
+	}
+}
+
+function readFileIntoArray($path) {
+	$file_array = file($path);
+
+	foreach ($file_array as $line_num => $line) {
+		if (strpos($line, "\n", -1)) {
+			$file_array[$line_num] = rtrim($line);
+		}
+	}
+
+	return $file_array;
+}
+
+function splitStringByBlanks($string) {
+	return preg_split("/[[:blank:]]+/", $string);
+}
+
 function getCPUValues() {
-	return "CPU: 199% 3700MHz 200C 3600rpm";
+	// "CPU: 199% 3700MHz 200C 3600rpm";
+	global $cpu_stats;
+	global $config;
+
+	// 1. CPU usage ($cpu_usage_text, 4 chars width)
+	$fileArray = readFileIntoArray("/proc/stat");
+	$statsIndex = searchRegexInArray($fileArray, "/^cpu[[:blank:]]/");
+
+	$statsArray = splitStringByBlanks($fileArray[$statsIndex]);
+
+	$idle = $statsArray[4];
+	$total = 0;
+	for ($index = 1; $index < count($statsArray); $index++) {
+		$total += $statsArray[$index];
+	}
+
+	if (isset($cpu_stats['idle']) && isset($cpu_stats['total']) ) {
+		$idle_diff = $cpu_stats['idle'] - $idle;
+		$total_diff = $cpu_stats['total'] - $total;
+
+		if ( $total_diff != 0 ) {
+			$cpu_usage = (1 - $idle_diff / $total_diff) * 100;
+			$cpu_usage_text = substr(sprintf("%f", $cpu_usage), 0, 3);
+
+			if (strpos($cpu_usage_text, ".", -1)) {
+				$cpu_usage_text = " ".substr($cpu_usage_text, 0, -1);
+			}
+
+			$cpu_usage_text = $cpu_usage_text . '%';
+		} else {
+			$cpu_usage_text = "?/0%";
+		}
+	} else {
+		$cpu_usage_text = "---%";
+	}
+
+	$cpu_stats['idle'] = $idle;
+	$cpu_stats['total'] = $total;
+
+	// 2. CPU frequence ($cpu_freq_text, 7 chars width)
+	$cpu_freq_text = "3700MHz";
+
+	// 3. CPU temperature ($cpu_temperature_text, 4 chars width)
+	$cpu_temperature_text = "200C";
+
+	// 4. CPU fan speed ($cpu_fan_text, 7 chars width)
+	$cpu_fan_text = "3600rpm";
+
+	$return_text = "CPU: ".$cpu_usage_text." ".$cpu_freq_text." ".$cpu_temperature_text." ".$cpu_fan_text;
+
+	var_dump($return_text);
+	return $return_text;
 }
 
 function getRAMValues() {
-	return "RAM:  16384 used / 16384 free";
+	// cat /proc/meminfo | egrep '^(MemTotal|MemFree|Buffers|Cached|Shmem):'
+	// Used: MemTotal-MemFree-Buffers-Cached+Shmem
+	return "RAM: 16384 f / 16384 a / 16384 u";
 }
 
 function getGPUValues() {
-	return "GPU: 199%   200C   3600rpm";
+	// nvidia-smi -q | egrep -A 1 '^[[:blank:]]*Utilization' | grep Gpu
+	// nvidia-smi -q | egrep 'GPU Current Temp'
+	// nvidia-smi -q | egrep 'Fan'
+	return "GPU: 199%  200C F:100%";
 }
 
 function getVRAMalues() {
+	// nvidia-smi -q | grep -A 3 'FB Memory Usage' | egrep 'Used|Free'
 	return "VRAM: 16384 used / 16384 free";
 }
 
