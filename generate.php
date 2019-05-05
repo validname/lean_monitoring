@@ -57,6 +57,13 @@ class Image {
 		$this->borderX = $spec_borderX;
 		$this->borderY = $spec_borderY;
 		$this->spaceY = $spec_spaceY;
+
+		$this->image = imagecreatetruecolor($this->screenW, $this->screenH);
+
+		$this->colorForeground = imagecolorallocate($this->image, 96, 255, 0);
+		$this->colorBackground = imagecolorallocate($this->image, 0, 0, 0);
+
+		imagealphablending( $this->image, true);
 	}
 
 	function drawTextString($textX, $textY, $text) {
@@ -76,15 +83,12 @@ class Image {
 	}
 
 	public function renderImage() {
-		$this->image = imagecreatetruecolor($this->screenW, $this->screenH);
-
-		$this->colorForeground = imagecolorallocate($this->image, 96, 255, 0);
-		$this->colorBackground = imagecolorallocate($this->image, 0, 0, 0);
 		imagefilledrectangle($this->image, 0, 0, $this->screenW, $this->screenH, $this->colorBackground);
 
 		foreach ($this->textArray as $textElement) {
 			$this::drawTextString($textElement['x'], $textElement['y'], $textElement['text']);
 		}
+		unset($this->textArray);
 	}
 
 	public function setOutputImage($path) {
@@ -93,7 +97,6 @@ class Image {
 
 	public function outputImage() {
 		imagepng($this->image, $this->outputImage);
-		imagedestroy($this->image);
 	}
 }
 
