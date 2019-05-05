@@ -1,0 +1,13 @@
+[Unit]
+Description=Generates system usage image
+After=network.target
+
+[Service]
+ExecStartPre=mount -t tmpfs tmpfs /mnt/tmpfs
+ExecStartPre=ln -s /usr/share/system_usage/index.html /mnt/tmpfs/
+ExecStart=php /usr/share/system_usage/generate.php
+ExecStopPost=umount /mnt/tmpfs
+TimeoutSec=0
+
+[Install]
+WantedBy=multi-user.target

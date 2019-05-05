@@ -29,6 +29,8 @@ $config['font'] = "/usr/share/system_usage/HomBoldB_16x24_LE.gdf";
 
 $config['outputFile'] = '/mnt/tmpfs/system_usage.png';
 
+$config['generateInterval'] = 10;
+
 class Image {
 	public $image;
 	private $screenW;
@@ -105,14 +107,18 @@ function _main() {
 	$Image->setFont($config['font']);
 	$Image->setOutputImage($config['outputFile']);
 
-	getMonitoredValues();
-	$Image->addText(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
-	$Image->addText(0, 1, "RAM:  16384 used / 16384 free");
-	$Image->addText(0, 3, "GPU: 199%   200C   3600rpm");
-	$Image->addText(0, 4, "VRAM: 16384 used / 16384 free");
+	while (1) {
+		getMonitoredValues();
+		$Image->addText(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
+		$Image->addText(0, 1, "RAM:  16384 used / 16384 free");
+		$Image->addText(0, 3, "GPU: 199%   200C   3600rpm");
+		$Image->addText(0, 4, "VRAM: 16384 used / 16384 free");
 
-	$Image->renderImage();
-	$Image->outputImage();
+		$Image->renderImage();
+		$Image->outputImage();
+
+		sleep($config['generateInterval']);
+	}
 }
 
 _main();
