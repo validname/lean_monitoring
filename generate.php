@@ -17,21 +17,17 @@ picture size: 480 (480 max) x 120 (320 max)
 */
 
 // parameters
+$config = array();
+$config['screenW'] = 480;
+$config['screenH'] = 320;
+$config['borderX'] = 0;
+$config['borderY'] = 8;
+$config['spaceY'] = 8;
 
-$screenW = 480;
-$screenH = 320;
-$borderX = 0;
-$borderY = 8;
-$spaceY = 8;
+// font from http://www.danceswithferrets.org/lab/gdfs/
+$config['font'] = "HomBoldB_16x24_LE.gdf";
 
-
-// global var with their default vaues
-$image = 0;
-$colorForeground = 0;
-$colorBackground = 0;
-$font = 0;
-$fontW = 0;
-$fontH = 0;
+$config['outputFile'] = 'baremetal_usage.png';
 
 class Image {
 	public $image;
@@ -96,10 +92,11 @@ function getMonitoredValues() {
 }
 
 function _main() {
-	$Image = new Image(480, 320, 0, 8, 8);
+	global $config;
 
-	// Load custom font from http://www.danceswithferrets.org/lab/gdfs/
-	$Image->setFont("HomBoldB_16x24_LE.gdf");
+	$Image = new Image($config['screenW'], $config['screenH'], $config['borderX'], $config['borderY'], $config['spaceY']);
+
+	$Image->setFont($config['font']);
 
 	getMonitoredValues();
 	$Image->addText(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
