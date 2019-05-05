@@ -61,17 +61,18 @@ class Image {
 		imagestring($this->image, $this->font, $x, $y, $text, $this->colorForeground);
 	}
 
+	public function setFont($path) {
+		$this->font = imageloadfont($path);
+		$this->fontW = imagefontwidth($this->font);
+		$this->fontH = imagefontheight($this->font);
+	}
+
 	public function renderImage() {
 		$this->image = imagecreatetruecolor($this->screenW, $this->screenH);
 
 		$this->colorForeground = imagecolorallocate($this->image, 96, 255, 0);
 		$this->colorBackground = imagecolorallocate($this->image, 0, 0, 0);
 		imagefilledrectangle($this->image, 0, 0, $this->screenW, $this->screenH, $this->colorBackground);
-
-		// Load custom font from http://www.danceswithferrets.org/lab/gdfs/
-		$this->font = imageloadfont("HomBoldB_16x24_LE.gdf");
-		$this->fontW = imagefontwidth($this->font);
-		$this->fontH = imagefontheight($this->font);
 
 		$this::drawTextString(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
 		self::drawTextString(0, 1, "RAM:  16384 used / 16384 free");
@@ -91,6 +92,9 @@ function getMonitoredValues() {
 
 function _main() {
 	$Image = new Image(480, 320, 0, 8, 8);
+
+	// Load custom font from http://www.danceswithferrets.org/lab/gdfs/
+	$Image->setFont("HomBoldB_16x24_LE.gdf");
 
 	getMonitoredValues();
 
