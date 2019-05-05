@@ -25,9 +25,9 @@ $config['borderY'] = 8;
 $config['spaceY'] = 8;
 
 // font from http://www.danceswithferrets.org/lab/gdfs/
-$config['font'] = "HomBoldB_16x24_LE.gdf";
+$config['font'] = "/usr/share/system_usage/HomBoldB_16x24_LE.gdf";
 
-$config['outputFile'] = 'baremetal_usage.png';
+$config['outputFile'] = '/mnt/tmpfs/system_usage.png';
 
 class Image {
 	public $image;
@@ -42,6 +42,8 @@ class Image {
 	private $font;
 	private $fontW;
 	private $fontH;
+
+	private $outputImage;
 
 	private $textArray = array();
 
@@ -81,9 +83,13 @@ class Image {
 		}
 	}
 
+	public function setOutputImage($path) {
+		$this->outputImage = $path;
+	}
+
 	public function outputImage() {
 		header('Content-type: image/png');
-		imagepng($this->image);
+		imagepng($this->image, $this->outputImage);
 		imagedestroy($this->image);
 	}
 }
@@ -97,6 +103,7 @@ function _main() {
 	$Image = new Image($config['screenW'], $config['screenH'], $config['borderX'], $config['borderY'], $config['spaceY']);
 
 	$Image->setFont($config['font']);
+	$Image->setOutputImage($config['outputFile']);
 
 	getMonitoredValues();
 	$Image->addText(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
