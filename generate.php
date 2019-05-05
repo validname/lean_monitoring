@@ -96,7 +96,20 @@ class Image {
 	}
 }
 
-function getMonitoredValues() {
+function getCPUValues() {
+	return "CPU: 199% 3700MHz 200C 3600rpm";
+}
+
+function getRAMValues() {
+	return "RAM:  16384 used / 16384 free";
+}
+
+function getGPUValues() {
+	return "GPU: 199%   200C   3600rpm";
+}
+
+function getVRAMalues() {
+	return "VRAM: 16384 used / 16384 free";
 }
 
 function _main() {
@@ -108,11 +121,13 @@ function _main() {
 	$Image->setOutputImage($config['outputFile']);
 
 	while (1) {
-		getMonitoredValues();
-		$Image->addText(0, 0, "CPU: 199% 3700MHz 200C 3600rpm");
-		$Image->addText(0, 1, "RAM:  16384 used / 16384 free");
-		$Image->addText(0, 3, "GPU: 199%   200C   3600rpm");
-		$Image->addText(0, 4, "VRAM: 16384 used / 16384 free");
+		$Image->addText(0, 0, getCPUValues());
+
+		$Image->addText(0, 1, getRAMValues());
+
+		$Image->addText(0, 3, getGPUValues());
+
+		$Image->addText(0, 4, getVRAMalues());
 
 		$Image->renderImage();
 		$Image->outputImage();
