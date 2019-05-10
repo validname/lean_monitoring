@@ -224,9 +224,32 @@ function getCPUValues() {
 }
 
 function getRAMValues() {
-	// cat /proc/meminfo | egrep '^(MemTotal|MemFree|Buffers|Cached|Shmem):'
-	// Used: MemTotal-MemFree-Buffers-Cached+Shmem
-	return "RAM: 16384 f / 16384 a / 16384 u";
+	$memoryInfoFileArray = readFileIntoArray("/proc/meminfo");
+
+	$memoryInfoArray = array( 'MemTotal' => 0, 'MemFree' => 0, 'MemAvailable' => 0, 'Buffers' => 0, 'Cached' => 0, 'Shmem' => 0 );
+
+	$returnText = "RAM: ???";
+	$gotError = false;
+	foreach( $memoryInfoArray as $statName => $tmpValue ) {
+		$arrayIndex = searchRegexInArray($memoryInfoFileArray, "/^" . $statName . ":/");
+		if ( $arrayIndex === -1 ) {
+			$gotError = true;
+			break;
+		}
+		$statValueArray = splitStringByBlanks($memoryInfoFileArray[$arrayIndex]);
+		$memoryInfoArray[$statName] = $statValueArray[1];
+	}
+
+	if ( !$gotError ) {
+		$memoryFree = $memoryInfoArray["MemFree"] / 1024;
+		$memoryAvailable = $memoryInfoArray["MemAvailable"] / 1024;
+		$memoryUsed = ($memoryInfoArray["MemTotal"] - $memoryInfoArray["MemFree"] - $memoryInfoArray["Buffers"] - $memoryInfoArray["Cached"] + $memoryInfoArray["Shmem"]) / 1024;
+
+		$returnText = sprintf("RAM: %d f / %d a / %d u", $memoryFree, $memoryAvailable, $memoryUsed);
+	}
+
+	var_dump($returnText);
+	return $returnText;
 }
 
 function getGPUValues() {
