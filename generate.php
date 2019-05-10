@@ -29,6 +29,8 @@ $config['font'] = "/usr/share/system_usage/HomBoldB_16x24_LE.gdf";
 
 $config['outputFile'] = '/mnt/tmpfs/system_usage.png';
 
+$config["cpu_threads"] = 1;
+
 $config['generateInterval'] = 10;
 
 $cpu_stats = array();
@@ -133,6 +135,30 @@ function splitStringByBlanks($string) {
 	return preg_split("/[[:blank:]]+/", $string);
 }
 
+function getCPUThreads() {
+	$topologyString = rtrim(file_get_contents("/sys/devices/system/cpu/cpu0/topology/thread_siblings_list"));
+
+	// split list if it's exist
+	$topologyArray = explode(",", $topologyString);
+	$threads = 0;
+
+	foreach ($topologyArray as $tmp_index => $listElement) {
+		if (strpos($listElement, "-") !== false) {
+			// it's a range
+			list($first,$last) = explode("-", $listElement);
+			for ( $tmp_index2 = $first; $tmp_index2 <= $last; $tmp_index2++ ) {
+				$threads++;
+			}
+		} else {
+			// just a single core
+			$threads++;
+		}
+	}
+
+	return $threads;
+}
+
+
 function getCPUValues() {
 	// "CPU: 199% 3700MHz 200C 3600rpm";
 	global $cpu_stats;
@@ -156,6 +182,8 @@ function getCPUValues() {
 
 		if ( $total_diff != 0 ) {
 			$cpu_usage = (1 - $idle_diff / $total_diff) * 100;
+			// correct using threads
+			$cpu_usage *= $config["cpu_threads"];
 			$cpu_usage_text = substr(sprintf("%f", $cpu_usage), 0, 3);
 
 			if (strpos($cpu_usage_text, ".", -1)) {
@@ -208,6 +236,8 @@ function getVRAMalues() {
 
 function _main() {
 	global $config;
+
+	$config["cpu_threads"] = getCPUThreads();
 
 	$Image = new Image($config['screenW'], $config['screenH'], $config['borderX'], $config['borderY'], $config['spaceY']);
 
