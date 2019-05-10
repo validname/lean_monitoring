@@ -21,7 +21,7 @@ $config = array();
 $config['screenW'] = 480;
 $config['screenH'] = 320;
 $config['borderX'] = 0;
-$config['borderY'] = 8;
+$config['borderY'] = 16;
 $config['spaceY'] = 8;
 
 // font from http://www.danceswithferrets.org/lab/gdfs/
@@ -29,11 +29,11 @@ $config['font'] = "/usr/share/system_usage/HomBoldB_16x24_LE.gdf";
 
 $config['outputFile'] = '/mnt/tmpfs/system_usage.png';
 
-$config["cpu_threads"] = 1;
+$config["cpuThreads"] = 1;
 
-$config['generateInterval'] = 10;
+$config['generateInterval'] = 5;
 
-$cpu_stats = array();
+$cpuStats = array();
 
 class Image {
 	public $image;
@@ -120,15 +120,15 @@ function searchRegexInArray($textArray, $string, $startIndex=0) {
 }
 
 function readFileIntoArray($path) {
-	$file_array = file($path);
+	$fileArray = file($path);
 
-	foreach ($file_array as $line_num => $line) {
+	foreach ($fileArray as $lineNum => $line) {
 		if (strpos($line, "\n", -1)) {
-			$file_array[$line_num] = rtrim($line);
+			$fileArray[$lineNum] = rtrim($line);
 		}
 	}
 
-	return $file_array;
+	return $fileArray;
 }
 
 function splitStringByBlanks($string) {
@@ -142,11 +142,11 @@ function getCPUThreads() {
 	$topologyArray = explode(",", $topologyString);
 	$threads = 0;
 
-	foreach ($topologyArray as $tmp_index => $listElement) {
+	foreach ($topologyArray as $tmpIndex => $listElement) {
 		if (strpos($listElement, "-") !== false) {
 			// it's a range
 			list($first,$last) = explode("-", $listElement);
-			for ( $tmp_index2 = $first; $tmp_index2 <= $last; $tmp_index2++ ) {
+			for ( $tmpIndex2 = $first; $tmpIndex2 <= $last; $tmpIndex2++ ) {
 				$threads++;
 			}
 		} else {
@@ -161,10 +161,10 @@ function getCPUThreads() {
 
 function getCPUValues() {
 	// "CPU: 199% 3700MHz 200C 3600rpm";
-	global $cpu_stats;
+	global $cpuStats;
 	global $config;
 
-	// 1. CPU usage ($cpu_usage_text, 4 chars width)
+	// 1. CPU usage ($cpuUsageText, 4 chars width)
 	$fileArray = readFileIntoArray("/proc/stat");
 	$statsIndex = searchRegexInArray($fileArray, "/^cpu[[:blank:]]/");
 
@@ -176,44 +176,44 @@ function getCPUValues() {
 		$total += $statsArray[$index];
 	}
 
-	if (isset($cpu_stats['idle']) && isset($cpu_stats['total']) ) {
-		$idle_diff = $cpu_stats['idle'] - $idle;
-		$total_diff = $cpu_stats['total'] - $total;
+	if (isset($cpuStats['idle']) && isset($cpuStats['total']) ) {
+		$idleDiff = $cpuStats['idle'] - $idle;
+		$totalDiff = $cpuStats['total'] - $total;
 
-		if ( $total_diff != 0 ) {
-			$cpu_usage = (1 - $idle_diff / $total_diff) * 100;
+		if ( $totalDiff != 0 ) {
+			$cpuUsage = (1 - $idleDiff / $totalDiff) * 100;
 			// correct using threads
-			$cpu_usage *= $config["cpu_threads"];
-			$cpu_usage_text = substr(sprintf("%f", $cpu_usage), 0, 3);
+			$cpuUsage *= $config["cpuThreads"];
+			$cpuUsageText = substr(sprintf("%f", $cpuUsage), 0, 3);
 
-			if (strpos($cpu_usage_text, ".", -1)) {
-				$cpu_usage_text = " ".substr($cpu_usage_text, 0, -1);
+			if (strpos($cpuUsageText, ".", -1)) {
+				$cpuUsageText = " ".substr($cpuUsageText, 0, -1);
 			}
 
-			$cpu_usage_text = $cpu_usage_text . '%';
+			$cpuUsageText = $cpuUsageText . '%';
 		} else {
-			$cpu_usage_text = "?/0%";
+			$cpuUsageText = "?/0%";
 		}
 	} else {
-		$cpu_usage_text = "---%";
+		$cpuUsageText = "---%";
 	}
 
-	$cpu_stats['idle'] = $idle;
-	$cpu_stats['total'] = $total;
+	$cpuStats['idle'] = $idle;
+	$cpuStats['total'] = $total;
 
-	// 2. CPU frequence ($cpu_freq_text, 7 chars width)
-	$cpu_freq_text = "3700MHz";
+	// 2. CPU frequence ($cpuFrequenceText, 7 chars width)
+	$cpuFrequenceText = "3700MHz";
 
-	// 3. CPU temperature ($cpu_temperature_text, 4 chars width)
-	$cpu_temperature_text = "200C";
+	// 3. CPU temperature ($cpuTemperatureText, 4 chars width)
+	$cpuTemperatureText = "200C";
 
-	// 4. CPU fan speed ($cpu_fan_text, 7 chars width)
-	$cpu_fan_text = "3600rpm";
+	// 4. CPU fan speed ($cpuFANText, 7 chars width)
+	$cpuFANText = "3600rpm";
 
-	$return_text = "CPU: ".$cpu_usage_text." ".$cpu_freq_text." ".$cpu_temperature_text." ".$cpu_fan_text;
+	$returnText = "CPU: ".$cpuUsageText." ".$cpuFrequenceText." ".$cpuTemperatureText." ".$cpuFANText;
 
-	var_dump($return_text);
-	return $return_text;
+	var_dump($returnText);
+	return $returnText;
 }
 
 function getRAMValues() {
@@ -237,7 +237,7 @@ function getVRAMalues() {
 function _main() {
 	global $config;
 
-	$config["cpu_threads"] = getCPUThreads();
+	$config["cpuThreads"] = getCPUThreads();
 
 	$Image = new Image($config['screenW'], $config['screenH'], $config['borderX'], $config['borderY'], $config['spaceY']);
 
