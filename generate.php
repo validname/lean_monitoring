@@ -202,7 +202,10 @@ function getCPUValues() {
 	$cpuStats['total'] = $total;
 
 	// 2. CPU frequence ($cpuFrequenceText, 7 chars width)
-	$cpuFrequenceText = "3700MHz";
+	// get only on first core, i don't know how to consider all of them
+	$cpuFrequence = rtrim(file_get_contents("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"));
+
+	$cpuFrequenceText = sprintf("%4dMHz", $cpuFrequence/1000);
 
 	// 3. CPU temperature ($cpuTemperatureText, 4 chars width)
 	$cpuTemperatureText = "200C";
