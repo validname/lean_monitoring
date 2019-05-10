@@ -30,6 +30,8 @@ $config['font'] = "/usr/share/system_usage/HomBoldB_16x24_LE.gdf";
 $config['outputFile'] = '/mnt/tmpfs/system_usage.png';
 
 $config["cpuThreads"] = 1;
+$config["cpuTemperatureSensorPath"] = "/sys/class/hwmon/hwmon1/temp1_input";
+$config["cpuFANSensorPath"] = "/sys/class/hwmon/hwmon2/fan1_input";
 
 $config['generateInterval'] = 5;
 
@@ -208,10 +210,12 @@ function getCPUValues() {
 	$cpuFrequenceText = sprintf("%4dMHz", $cpuFrequence/1000);
 
 	// 3. CPU temperature ($cpuTemperatureText, 4 chars width)
-	$cpuTemperatureText = "200C";
+	$cpuTemperature = rtrim(file_get_contents($config["cpuTemperatureSensorPath"]));
+	$cpuTemperatureText = sprintf("%3dC", $cpuTemperature/1000);
 
 	// 4. CPU fan speed ($cpuFANText, 7 chars width)
-	$cpuFANText = "3600rpm";
+	$cpuFAN = rtrim(file_get_contents($config["cpuFANSensorPath"]));
+	$cpuFANText = sprintf("%4drpm", $cpuFAN);
 
 	$returnText = "CPU: ".$cpuUsageText." ".$cpuFrequenceText." ".$cpuTemperatureText." ".$cpuFANText;
 
