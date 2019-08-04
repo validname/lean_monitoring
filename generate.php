@@ -33,6 +33,10 @@ $config["cpuThreads"] = 1;
 $config["cpuTemperatureSensorPath"] = "/sys/class/hwmon/hwmon1/temp1_input";
 $config["cpuFANSensorPath"] = "/sys/class/hwmon/hwmon2/fan1_input";
 
+// can be overriden by command line
+$config['debug'] = false;
+$config['dryRun'] = false;
+$config['runOnce'] = false;
 $config['generateInterval'] = 5;
 
 $cpuStats = array();
@@ -245,11 +249,15 @@ function getCPUValues() {
 
 	$returnText = "CPU: ".$cpuUsageText." ".$cpuFrequenceText." ".$cpuTemperatureText." ".$cpuFANText;
 
-	var_dump($returnText);
+	if($config['debug']) {
+		var_dump($returnText);
+	}
 	return $returnText;
 }
 
 function getRAMValues() {
+	global $config;
+
 	$memoryInfoFileArray = readFileIntoArray("/proc/meminfo");
 
 	$memoryInfoArray = array( 'MemTotal' => 0, 'MemFree' => 0, 'MemAvailable' => 0, 'Buffers' => 0, 'Cached' => 0, 'Shmem' => 0 );
@@ -274,20 +282,22 @@ function getRAMValues() {
 		$returnText = sprintf("RAM: %d f / %d a / %d u", $memoryFree, $memoryAvailable, $memoryUsed);
 	}
 
-	var_dump($returnText);
+	if($config['debug']) {
+		var_dump($returnText);
+	}
 	return $returnText;
 }
 
-function getCPUAllInfo() {
+function getGPUAllInfo() {
 	$returnArray = array();
 	$returnCode = 0;
 
 	exec('nvidia-smi -q 2>&1', $returnArray, $returnCode);
 
 	if( $returnCode > 0) {
-		echo "getCPUAllInfo(): got error ".$returnCode." while executing command.".PHP_EOL;
+		echo "getGPUAllInfo(): got error ".$returnCode." while executing command.".PHP_EOL;
 		$output = implode(PHP_EOL, $returnArray);
-		echo "getCPUAllInfo(): output was: '".$output."'".PHP_EOL;
+		echo "getGPUAllInfo(): output was: '".$output."'".PHP_EOL;
 
 		// we can return false, but cache will be always invalid and this command will runned each time. It make cache useless in this case.
 		return "";
@@ -297,6 +307,8 @@ function getCPUAllInfo() {
 }
 
 function getGPUValues($cachedGPUInfo) {
+	global $config;
+
 	$returnText = "";
 	$GPUInfo = $cachedGPUInfo->getValue();
 
@@ -357,11 +369,15 @@ function getGPUValues($cachedGPUInfo) {
 		$returnText = "GPU: ".$gpuUtilizationText."  ".$gpuTemperatureText." ".$gpuFANText;
 	}
 
-	var_dump($returnText);
+	if($config['debug']) {
+		var_dump($returnText);
+	}
 	return $returnText;
 }
 
 function getVRAMalues($cachedGPUInfo) {
+	global $config;
+
 	$returnText = "";
 	$GPUInfo = $cachedGPUInfo->getValue();
 
@@ -397,12 +413,69 @@ function getVRAMalues($cachedGPUInfo) {
 		$returnText = "VRAM: ".$vramUsedText." / ".$vramFreeText;
 	}
 
-	var_dump($returnText);
+	if($config['debug']) {
+		var_dump($returnText);
+	}
 	return $returnText;
+}
+
+function parseCommandLineOption() {
+	global $config;
+
+	$longOptions = array(
+		"help",
+		"debug",
+		"dry-run",
+		"once",
+		"interval:"
+	);
+	$arguments = getopt("hdroi:", $longOptions);
+
+	foreach ($arguments as $argumentName => $argumentValue) {
+		switch ($argumentName) {
+			case 'h':
+			case 'help':
+				echo <<< ENDOFTEXT
+Command line arguments:
+	-h | --help          this help
+	-d | --debug         output all text to stdout
+	-r | --dry-run       don't generate image
+	-o | --once          run once instead of ifinite loop
+	-i N | --interval N  interval in seconds for image generating
+ENDOFTEXT;
+				echo PHP_EOL;
+				exit(0);
+				break;
+
+			case 'd':
+			case 'debug':
+				$config['debug'] = true;
+				break;
+
+			case 'r':
+			case 'dry-run':
+				$config['dryRun'] = true;
+				break;
+
+			case 'o':
+			case 'once':
+				$config['runOnce'] = true;
+				break;
+
+			case 'i':
+			case 'interval':
+				if($argumentValue > 0) {
+					$config['generateInterval'] = $argumentValue;
+				}
+				break;
+		}
+	}
 }
 
 function _main() {
 	global $config;
+
+	parseCommandLineOption();
 
 	$config["cpuThreads"] = getCPUThreads();
 
@@ -416,7 +489,7 @@ function _main() {
 		$cacheTTL = 0;
 	}
 
-	$cachedGPUInfo = new Cache('getCPUAllInfo', $cacheTTL);
+	$cachedGPUInfo = new Cache('getGPUAllInfo', $cacheTTL);
 
 	while (1) {
 		$Image->addText(0, 0, getCPUValues());
@@ -427,8 +500,14 @@ function _main() {
 
 		$Image->addText(0, 4, getVRAMalues($cachedGPUInfo));
 
-		$Image->renderImage();
-		$Image->outputImage();
+		if(!$config['dryRun']) {
+			$Image->renderImage();
+			$Image->outputImage();
+		}
+
+		if($config['runOnce']) {
+			break;
+		}
 
 		sleep($config['generateInterval']);
 	}
