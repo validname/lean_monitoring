@@ -104,6 +104,32 @@ class Image {
 	}
 }
 
+class Cache {
+	private $value;
+	private $TTL;
+	private $timestamp;
+
+	private	$getFunctionReference;
+
+	function __construct($getFunctionReference, $TTL) {
+		$this->getFunctionReference = $getFunctionReference;
+		$this->TTL = $TTL;
+		$this->value = false;
+		$this->timestamp = time();
+	}
+
+	public function getValue() {
+		$currentTimestamp = time();
+
+		if( $this->TTL == 0 || ($currentTimestamp-$this->timestamp) > $this->TTL || $this->value === false ) {
+			$this->value = call_user_func($this->getFunctionReference);
+			$this->timestamp = $currentTimestamp;
+		}
+
+		return $this->value;
+	}
+}
+
 function searchRegexInArray($textArray, $string, $startIndex=0) {
 	$arrayLength = count($textArray);
 
@@ -134,7 +160,7 @@ function readFileIntoArray($path) {
 }
 
 function splitStringByBlanks($string) {
-	return preg_split("/[[:blank:]]+/", $string);
+	return preg_split("/[[:blank:]]+/", trim($string));
 }
 
 function getCPUThreads() {
@@ -252,14 +278,98 @@ function getRAMValues() {
 	return $returnText;
 }
 
-function getGPUValues() {
-	// nvidia-smi -q | egrep -A 1 '^[[:blank:]]*Utilization' | grep Gpu
-	// nvidia-smi -q | egrep 'GPU Current Temp'
-	// nvidia-smi -q | egrep 'Fan'
-	return "GPU: 199%  200C F:100%";
+function getCPUAllInfo() {
+	$returnArray = array();
+	$returnCode = 0;
+
+	exec('nvidia-smi -q 2>&1', $returnArray, $returnCode);
+
+	if( $returnCode > 0) {
+		echo "getCPUAllInfo(): got error ".$returnCode." while executing command.".PHP_EOL;
+		$output = implode(PHP_EOL, $returnArray);
+		echo "getCPUAllInfo(): output was: '".$output."'".PHP_EOL;
+
+		// we can return false, but cache will be always invalid and this command will runned each time. It make cache useless in this case.
+		return "";
+	} else {
+		return $returnArray;
+	}
 }
 
-function getVRAMalues() {
+function getGPUValues($cachedGPUInfo) {
+	$returnText = "";
+	$GPUInfo = $cachedGPUInfo->getValue();
+
+	if($GPUInfo === false || $GPUInfo == "") {
+		$returnText = "(no info)";
+	} else {
+		// 1. GPU utilizattion
+		$gpuUtilization = 0;
+		$gotError = false;
+
+		$foundIndex = searchRegexInArray($GPUInfo, "/^[[:blank:]]*Utilization/i");
+		if( $foundIndex === -1 ) {
+			$gotError = true;
+		} else {
+			$foundIndex = searchRegexInArray($GPUInfo, "/^[[:blank:]]*GPU/i", $foundIndex);
+			if( $foundIndex === -1 ) {
+				$gotError = true;
+			} else {
+				$statsArray = splitStringByBlanks($GPUInfo[$foundIndex]);
+				$gpuUtilization = $statsArray[2];
+			}
+		}
+
+		if($gotError) {
+			$gpuUtilizationText = "???";
+		} else {
+			$gpuUtilizationText = sprintf("%3d%%", $gpuUtilization);
+		}
+
+		// 2. GPU temperature
+		$gpuTemperature = 0;
+		$gotError = false;
+
+		$foundIndex = searchRegexInArray($GPUInfo, "/^[[:blank:]]*GPU Current Temp/i");
+		if( $foundIndex === -1 ) {
+			$gotError = true;
+		} else {
+			$statsArray = splitStringByBlanks($GPUInfo[$foundIndex]);
+			$gpuTemperature = $statsArray[4];
+		}
+
+		if($gotError) {
+			$gpuTemperatureText = "???C";
+		} else {
+			$gpuTemperatureText = sprintf("%3dC", $gpuTemperature);
+		}
+
+		// 3. GPU FAN speed in %
+		$gpuFANSpeed = 0;
+		$gotError = false;
+
+		$foundIndex = searchRegexInArray($GPUInfo, "/^[[:blank:]]*Fan/i");
+		if( $foundIndex === -1 ) {
+			$gotError = true;
+		} else {
+			$statsArray = splitStringByBlanks($GPUInfo[$foundIndex]);
+			$gpuFANSpeed = $statsArray[3];
+		}
+
+		if($gotError) {
+			$gpuFANText = "???%";
+		} else {
+			$gpuFANText = sprintf("F:%3d%%", $gpuFANSpeed);
+		}
+	}
+
+	$returnText = "GPU: ".$gpuUtilizationText."  ".$gpuTemperatureText." ".$gpuFANText;
+
+	var_dump($returnText);
+	return $returnText;
+}
+
+function getVRAMalues($cachedGPUInfo) {
 	// nvidia-smi -q | grep -A 3 'FB Memory Usage' | egrep 'Used|Free'
 	return "VRAM: 16384 used / 16384 free";
 }
@@ -274,14 +384,21 @@ function _main() {
 	$Image->setFont($config['font']);
 	$Image->setOutputImage($config['outputFile']);
 
+	$cacheTTL = $config['generateInterval']-1;
+	if ( $cacheTTL<0 ) {
+		$cacheTTL = 0;
+	}
+
+	$cachedGPUInfo = new Cache('getCPUAllInfo', $cacheTTL);
+
 	while (1) {
 		$Image->addText(0, 0, getCPUValues());
 
 		$Image->addText(0, 1, getRAMValues());
 
-		$Image->addText(0, 3, getGPUValues());
+		$Image->addText(0, 3, getGPUValues($cachedGPUInfo));
 
-		$Image->addText(0, 4, getVRAMalues());
+		$Image->addText(0, 4, getVRAMalues($cachedGPUInfo));
 
 		$Image->renderImage();
 		$Image->outputImage();
@@ -292,4 +409,4 @@ function _main() {
 
 _main();
 
-?> 
+?>
