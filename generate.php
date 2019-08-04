@@ -301,7 +301,7 @@ function getGPUValues($cachedGPUInfo) {
 	$GPUInfo = $cachedGPUInfo->getValue();
 
 	if($GPUInfo === false || $GPUInfo == "") {
-		$returnText = "(no info)";
+		$returnText = "GPU: (no info)";
 	} else {
 		// 1. GPU utilizattion
 		$gpuUtilization = 0;
@@ -332,15 +332,11 @@ function getGPUValues($cachedGPUInfo) {
 
 		$foundIndex = searchRegexInArray($GPUInfo, "/^[[:blank:]]*GPU Current Temp/i");
 		if( $foundIndex === -1 ) {
-			$gotError = true;
+			$gpuTemperatureText = "???C";
 		} else {
 			$statsArray = splitStringByBlanks($GPUInfo[$foundIndex]);
 			$gpuTemperature = $statsArray[4];
-		}
 
-		if($gotError) {
-			$gpuTemperatureText = "???C";
-		} else {
 			$gpuTemperatureText = sprintf("%3dC", $gpuTemperature);
 		}
 
@@ -350,28 +346,59 @@ function getGPUValues($cachedGPUInfo) {
 
 		$foundIndex = searchRegexInArray($GPUInfo, "/^[[:blank:]]*Fan/i");
 		if( $foundIndex === -1 ) {
-			$gotError = true;
+			$gpuFANText = "???%";
 		} else {
 			$statsArray = splitStringByBlanks($GPUInfo[$foundIndex]);
 			$gpuFANSpeed = $statsArray[3];
-		}
 
-		if($gotError) {
-			$gpuFANText = "???%";
-		} else {
 			$gpuFANText = sprintf("F:%3d%%", $gpuFANSpeed);
 		}
-	}
 
-	$returnText = "GPU: ".$gpuUtilizationText."  ".$gpuTemperatureText." ".$gpuFANText;
+		$returnText = "GPU: ".$gpuUtilizationText."  ".$gpuTemperatureText." ".$gpuFANText;
+	}
 
 	var_dump($returnText);
 	return $returnText;
 }
 
 function getVRAMalues($cachedGPUInfo) {
-	// nvidia-smi -q | grep -A 3 'FB Memory Usage' | egrep 'Used|Free'
-	return "VRAM: 16384 used / 16384 free";
+	$returnText = "";
+	$GPUInfo = $cachedGPUInfo->getValue();
+
+	if($GPUInfo === false || $GPUInfo == "") {
+		$returnText = "VRAM: (no info)";
+	} else {
+
+		$foundIndexCommon = searchRegexInArray($GPUInfo, "/^[[:blank:]]*FB Memory Usage/i");
+		if( $foundIndexCommon === -1 ) {
+			$gotError = true;
+		} else {
+
+			$foundIndex = searchRegexInArray($GPUInfo, "/^[[:blank:]]*Used/i", $foundIndexCommon);
+			if( $foundIndex === -1 || ($foundIndex-$foundIndexCommon)>3 ) {
+				$vramUsedText = "???";
+			} else {
+				$statsArray = splitStringByBlanks($GPUInfo[$foundIndex]);
+				$vramUsed = $statsArray[2];
+
+				$vramUsedText = sprintf("%5d used", $vramUsed);
+			}
+
+			$foundIndex = searchRegexInArray($GPUInfo, "/^[[:blank:]]*Free/i", $foundIndexCommon);
+			if( $foundIndex === -1 || ($foundIndex-$foundIndexCommon)>3 ) {
+				$vramFreeText = "???";
+			} else {
+				$statsArray = splitStringByBlanks($GPUInfo[$foundIndex]);
+				$vramFree = $statsArray[2];
+
+				$vramFreeText = sprintf("%5d free", $vramFree);
+			}
+		}
+		$returnText = "VRAM: ".$vramUsedText." / ".$vramFreeText;
+	}
+
+	var_dump($returnText);
+	return $returnText;
 }
 
 function _main() {
