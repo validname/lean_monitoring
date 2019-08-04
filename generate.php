@@ -410,7 +410,7 @@ function getVRAMalues($cachedGPUInfo) {
 				$vramFreeText = sprintf("%5d free", $vramFree);
 			}
 		}
-		$returnText = "VRAM: ".$vramUsedText." / ".$vramFreeText;
+		$returnText = "VRAM: ".$vramFreeText." / ".$vramUsedText;
 	}
 
 	if($config['debug']) {
