@@ -363,7 +363,7 @@ function getGPUValues($cachedGPUInfo) {
 			$statsArray = splitStringByBlanks($GPUInfo[$foundIndex]);
 			$gpuFANSpeed = $statsArray[3];
 
-			$gpuFANText = sprintf("F:%3d%%", $gpuFANSpeed);
+			$gpuFANText = sprintf("fan: %3d%%", $gpuFANSpeed);
 		}
 
 		$returnText = "GPU: ".$gpuUtilizationText."  ".$gpuTemperatureText." ".$gpuFANText;
